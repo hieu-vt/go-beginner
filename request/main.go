@@ -26,9 +26,9 @@ func (s *Storage) Read(k string) string {
 
 func (s *Storage) Write(k string, v string) {
 	s.lock.Lock()
-	defer s.lock.Unlock()
 	s.store[k] = v
 	s.count++
+	s.lock.Unlock()
 }
 
 func NewStorage() *Storage {
@@ -72,13 +72,21 @@ func main() {
 	for i := 1; i <= maxRoutine; i++ {
 		go func(name string) {
 			for value := range quoteChan {
+
 				key := fmt.Sprintf("%d", value)
+
 				visitedUrl := store.Read(key)
+				// fmt.Println("visitedUrl", visitedUrl, "Worker: ", name, visitedUrl != "")
 				if visitedUrl != "" {
 					continue
 				}
-				crawlData(value, name)
+
 				store.Write(key, key)
+
+				store.lock.Lock()
+				crawlData(value, name)
+				store.lock.Unlock()
+
 			}
 
 			fmt.Printf("Close worker %s\n", name)
